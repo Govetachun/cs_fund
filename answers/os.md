@@ -4,11 +4,23 @@
 
 A process is like a program in execution. And a thread is a segment of a process. Each process has its own memory and is isolated. Meanwhile, threads of the same process can easily communicate with other threads, access common variables, memory.
 
+### Why is a Thread Called a Lightweight Process?
+A thread is called a lightweight process (LWP) because it shares most resources with other threads in the same process, reducing overhead
+| Feature           | Process                  | Thread                     |
+|------------------|-------------------------|----------------------------|
+| **Memory Space**  | Separate address space  | Shared memory within a process |
+| **Creation Cost** | High (requires new PCB, memory allocation) | Low (only needs new TCB) |
+| **Context Switching** | Slow (requires switching memory mappings) | Fast (only registers & stack) |
+| **Communication** | Uses IPC (slow) | Uses shared memory (fast) |
+| **Execution** | Can run independently | Runs as part of a process |
+
 ## What data `process`, `thread` need to live? Why do they say that Thread is a lightweight process?
 
 Thread is a lightweight process because it does not cost much CPU to switch between threads as between processes.
 
 ## How CPU switch (context switch) between processes/threads? How data is to ensure safety? (in case single CPU core and multiple CPU cores)
+
+Context switching is the mechanism by which a CPU switches from executing one process (or thread) to another. This is essential for multitasking, allowing multiple processes or threads to share the CPU efficiently.
 
 When process context switching happens, the state of the current process will be stored in Process Control Block (PCB), so this process can be resumed later. It includes the value of the CPU registers, the process state, and memory-management information. Data pages in memory of the current process can be replaced or not, depending on the availability of memory, and the memory-management method of the operating system.
 
@@ -52,7 +64,7 @@ It is possible if the library is a shared library, not a static one. Each proces
 
 ## How does debugger work? How it can attach to a running process and change data of that process?
 
-To be defined.
+A debugger is a tool that helps developers analyze and control the execution of a program. It enables setting breakpoints, inspecting memory, modifying data, and stepping through instructions.
 
 ## How 2 processes can communicate with each other? (There are a lot of ways but focus on the OS's way)
 
@@ -84,7 +96,20 @@ Child process cannot change variables of its parent.
 
 ## Concurrency vs Parallels? (in case single CPU core and multiple CPU cores)
 
-To be defined.
+|Feature|	Concurrency|	Parallelism|
+|----|-----|------|
+|Definition|	Multiple tasks progress at the same time (but not necessarily executed at the same time).	|Multiple tasks run at the same time on different cores.|
+|Execution Style	|Task switching (time-sharing).	|True simultaneous execution.|
+|Single-Core CPU	|Can only achieve concurrency (by quickly switching between tasks).	|No true parallelism (because only one task runs at a time).|
+|Multi-Core CPU	|Can achieve both concurrency and parallelism.	|Parallel execution (each core runs a separate task).|
+|Analogy	|A single waiter serving multiple tables by switching between them.|	Multiple waiters serving multiple tables at the same time.
+
+
+- Single-core CPUs → Can only do concurrency (task switching).
+- Multi-core CPUs → Can do both concurrency and parallelism.
+- Concurrency ≠ Parallelism, but they complement each other in modern computing.
+    - 🚀 Concurrency = Managing multiple tasks efficiently.
+    - 🚀 Parallelism = Doing multiple tasks at the exact same time.
 
 ## What is critical zone?
 
@@ -117,14 +142,34 @@ This can be avoided by making processes release their locked variable when they 
 
 ## How does memory is managed in the OS?
 
-To be defined.
+| Component          | Description |
+|--------------------|-------------|
+| **Physical Memory (RAM)** | Actual memory available in hardware (DRAM modules). |
+| **Virtual Memory** | Abstraction that allows more memory than physically available using paging/swapping. |
+| **Page Tables** | Maps virtual addresses to physical addresses. |
+| **Memory Protection** | Prevents one process from accessing another’s memory. |
+| **Caching & TLB** | CPU caches frequently accessed memory addresses. |
+| **Memory Allocators** | OS allocates and deallocates memory efficiently for processes and kernel. |
+
 
 ## What is virtual memory? Why do we need it? How does it work?
+
+Virtual memory is an abstraction layer that allows a process to use more memory than is physically available in RAM. It provides an illusion of a large, continuous memory space, while the OS manages mapping between virtual and physical addresses.
+
+### Key Features of Virtual Memory:
+- Uses both RAM and disk storage (swap space).
+- Each process gets its own address space (isolated from others).
+- Allows efficient memory allocation and process execution.
+- Uses paging to map virtual memory to physical memory.
 
 Virtual memory is a memory management technique where secondary memory (eg disks) can be used as main memory like RAM. Virtual memory allows computers to operate quite normally when memory shortages happen.
 
 When a process is in use, its data is stored in a physical address using RAM. If at any point, RAM space is needed for something more urgent, data can be swapped out of RAM into virtual memory and swapped back again when needed.
-
+### Why Do We Need Virtual Memory?
+-  Allows Running Large Programs
+- Process Isolation (Security & Stability)
+- Multitasking & Efficient Memory Usage
+- Enables Memory Protection
 ## How large virtual memory is?
 
 The size of virtual memory is unlimited. Actually, it is limited by the disk space but the disk space is quite large so we can consider it unlimited.
@@ -139,7 +184,42 @@ Yes. Each process has its virtual memory address and can be mapped to the same p
 
 ## What is heap space and stack space?
 
-Heap space is for dynamic memory allocation. Stack space is for static memory allocation.
+## **Stack vs Heap: Key Differences and Use Cases**  
+
+### **1. Overview**  
+Both the **stack** and **heap** are memory regions used in a program, but they serve different purposes.
+
+| Feature  | **Stack** | **Heap** |
+|----------|---------|--------|
+| **Speed** | **Fast** (direct memory access, LIFO structure) | **Slower** (dynamic allocation, requires pointer management) |
+| **Size Limit** | **Small** (limited per thread, ~1MB - 8MB) | **Large** (depends on system memory) |
+| **Allocation Type** | **Automatic** (managed by function calls) | **Manual/Dynamic** (`malloc/free`, `new/delete`, or garbage collector) |
+| **Access Pattern** | **LIFO (Last In, First Out)** | **Random access** (scattered in memory) |
+| **Lifetime of Memory** | **Short-lived** (freed after function returns) | **Long-lived** (persists until explicitly freed) |
+| **Memory Fragmentation** | **No fragmentation** (stack is continuous) | **Possible fragmentation** (memory blocks scattered) |
+| **Typical Use Cases** | Function calls, local variables, control flow | Dynamic data structures (linked lists, trees, objects) |
+| **Risk** | **Stack Overflow** (deep recursion, too many local variables) | **Memory Leaks** (if memory is not freed) |
+
+---
+
+### **2. When to Use Stack vs Heap?**
+#### ✅ **Use Stack When:**
+- You need **fast memory allocation/deallocation**.
+- You have **small, short-lived variables** (e.g., function-local variables).
+- You need **thread safety** (each thread has its own stack).
+
+#### ✅ **Use Heap When:**
+- You need **dynamic memory allocation** (e.g., linked lists, trees, large objects).
+- You want **data to persist beyond function calls**.
+- You have **large memory needs** that exceed stack limits.
+
+---
+
+### **3. Why Stack is Faster Than Heap?**
+1. **Stack uses a contiguous memory block** → Faster cache access.
+2. **Stack memory allocation is automatic** → No overhead of dynamic allocation.
+3. **Heap requires memory management** → Slower due to fragmentation and pointer dereferencing.
+
 
 ## What will happen with memory when you open an application?
 
@@ -153,7 +233,8 @@ When a function returns, local variables will be pop out of stack and the stack 
 
 ## What will happen with stack? (why we do not use heap here?)?
 
-As above.
+- 🚀 Stack is used because it’s fast, automatic, and efficient for short-lived data.
+- 🚀 Heap is only used when we need dynamic, long-lived memory.
 
 ## What will happen with registers?
 
@@ -280,3 +361,30 @@ Example in Networking
 | **Performance** | Slower if waiting for I/O | Faster for I/O-bound tasks |
 | **Complexity** | Simpler to implement | More complex (requires event loops, callbacks) |
 | **Use Case** | CPU-bound tasks (math calculations) | I/O-bound tasks (networking, file reading) |
+
+
+## 32-bit vs 64-bit Architecture
+
+## **1. Definition**
+- **32-bit Architecture**: Uses 32-bit wide registers, memory addresses, and data buses.
+- **64-bit Architecture**: Uses 64-bit wide registers, memory addresses, and data buses.
+
+## **2. Key Differences**
+
+| Feature            | 32-bit Architecture | 64-bit Architecture |
+|-------------------|------------------|------------------|
+| **Register Size** | 32-bit           | 64-bit           |
+| **Addressable Memory** | Up to **4GB** (2³²) | Up to **16 exabytes** (2⁶⁴) theoretically, practical limit ~256TB |
+| **Performance** | Slower for large computations | Faster due to more registers & wider data paths |
+| **OS Compatibility** | Supports only 32-bit OS | Can run both 32-bit and 64-bit OS |
+| **Application Support** | Only 32-bit apps | Supports both 32-bit & 64-bit apps |
+| **Data Bus Width** | 32-bit          | 64-bit          |
+
+## **3. Why Is There a Difference?**
+- **Memory Addressing**: 64-bit can access **more memory** efficiently.
+- **Processing Power**: 64-bit CPUs handle **larger data chunks** at once, improving performance.
+- **Security**: 64-bit systems offer better security features (like ASLR, DEP).
+- **Backward Compatibility**: 64-bit CPUs can run 32-bit programs, but 32-bit CPUs cannot run 64-bit software.
+
+### **Conclusion**
+64-bit architecture is superior for modern computing, enabling more memory, better security, and improved performance.
