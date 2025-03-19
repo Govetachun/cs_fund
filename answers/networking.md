@@ -24,24 +24,110 @@ Sequence numbers are used to keep track of the order of data. The initial sequen
 
 ## What if the 3rd handshake fail? How the server can detect it and what does it do in this case?
 
-Retry and timeout.
+A two-way handshake is not sufficient for reliable connection establishment because TCP needs to ensure both sides are synchronized and ready to transmit data safely.
 
+### 1️⃣ What Would Happen in a Two-Way Handshake?
+A two-way handshake (like in some simpler protocols) could work as follows:
+
+Client sends SYN (Sequence Number X)
+Server responds with ACK (ACK = X + 1)\
+💡 Issue: The server does not get a confirmation that the client received the ACK, so the connection is not fully synchronized.
+
+### 2️⃣ Problems with a Two-Way Handshake
+A two-way handshake does not account for:
+
+Lost Packets 🛑
+
+If the server's response (ACK) is lost in transit, the client won't know whether the connection was accepted or not.
+The server might think a connection is established while the client is still waiting for a response.
+Old/Duplicated SYN Packets 🛑
+
+If a delayed or retransmitted SYN from an old connection arrives, the server might incorrectly assume a new connection was initiated.
+Full-Duplex Synchronization (Both Sides Must Be Ready) 📶
+
+In TCP, both parties need to agree on sequence numbers for reliable, ordered data transfer.
+The client needs to verify that the server’s sequence number has been received before data transmission.
+### 3️⃣ Why the Three-Way Handshake Works
+The three-way handshake solves these issues by ensuring mutual confirmation.
+
+- ✅ Step 1: Client sends SYN (Seq = X).
+- ✅ Step 2: Server sends SYN-ACK (Seq = Y, ACK = X + 1).
+- ✅ Step 3: Client sends ACK (ACK = Y + 1).
+
+Now, both sides know they are ready to communicate with synchronized sequence numbers.
+If a packet is lost, the retransmission mechanism ensures reliability.
+### 4️⃣ Analogy: Phone Call Connection 📞
+Imagine calling someone:
+
+- Step 1: You say, "Hello, can you hear me?" (SYN)
+- Step 2: They reply, "Yes, I can hear you! Can you hear me?" (SYN-ACK)
+- Step 3: You respond, "Yes, I can hear you too!" (ACK)
+- Now, both parties are sure the connection is stable and can start talking.
+Without the third step, one side might think the connection is active, but the other might not.
+
+### What Causes the Third Handshake to Fail?
+The third handshake (ACK from the client) may fail due to:
+
+- Network failure (packet loss, unstable connection)
+- Client crash (client machine shuts down unexpectedly)
+- Malicious attack (SYN flood attack, preventing ACK responses)
+- Firewall issues (ACK packet blocked by network security rules)
+### How the Server Detects a Failed Third Handshake
+The server, upon sending the SYN-ACK, transitions into the SYN-RECEIVED state and waits for the final ACK. If this does not arrive, the server uses timeouts and retransmissions to detect failure.
 ## How TCP handles the connection?
+|Scenario |	Server Response|
+|-------------|--------------------------|
+|ACK is received |	Connection moves to ESTABLISHED state.|
+|ACK is lost (temporary network issue) |	Server retries SYN-ACK a few times.|
+|Client crashes or disconnects |	Server times out and removes the connection.|
+|SYN Flood Attack |	Server may use SYN cookies to protect resources.|
 
-To be defined
+TCP (Transmission Control Protocol) opens a connection using the three-way handshake process. This handshake ensures that both the client and server are ready to communicate and agree on initial parameters like sequence numbers.
+
+### What TCP Needs to Open a Connection
+For a successful TCP connection, the following elements are required:
+
+- **Client & Server IP Addresses:** The two endpoints must know each other's IP addresses.
+- **Port Numbers:** Each side must specify a port number (e.g., HTTP uses port 80, HTTPS uses port 443).
+- **Initial Sequence Numbers (ISN):** Both client and server generate random ISNs to track the order of packets.
+- **Three-Way Handshake Completion:** Without completing all three steps, a TCP connection is not fully established.
+- **No Firewall or Network Restrictions:** If firewalls block SYN packets or certain ports, the connection will fail.
 
 ## What happens if some bits are wrong due to connection errors? How to detect them and fix them?
+
+When data is transmitted over a network, bit errors can occur due to interference, noise, or packet corruption. TCP has built-in mechanisms to detect and recover from these errors to ensure reliable data delivery.
 
 If some bits are wrong, the checksum of this packet will not match. In this case, the receiver will discard this packet.
 
 ## How the timeout is handled? what if the timeout is expired?
+### 1️⃣ Concept of Timeout in TCP
+A timeout occurs when the sender does not receive an expected ACK within a calculated time frame. The timeout duration is called the **Retransmission Timeout (RTO)**.
 
-To be defined
+2️⃣ What Happens When Timeout Expires?
+If a timeout expires before an ACK is received:
+
+Retransmit the Lost Packet
+Increase the Timeout (Exponential Backoff)
+Reduce Transmission Rate (Congestion Control)
+
+|Scenario	|TCP Response|
+|-------------|--------------------------|
+|Packet sent, ACK received on time|	Normal transmission continues|
+|Packet sent, ACK delayed but within timeout	|No retransmission, TCP updates RTT estimation|
+|Packet sent, ACK not received before timeout expires|	Retransmission triggered, RTO increased (exponential backoff)|
+|Multiple timeouts occur|	Sending rate reduced (congestion control)|
 
 ## What will happen if some "packet" is missing on the way?
 
-When a packet is missing, network congestion is assumed to happen. TCP has its own way to deal with network congestion. It is called TCP Congestion control. It starts when slow-start phrase, in which the transmit rate (congestion window) grows exponentially, doubling each round trip time. When a packet is lost, congestion avoidance begins. The transmit rate is cut into half, then increase linearly, usually by 1 each RTT.
+When a packet (TCP segment) is lost in transit due to network congestion, interference, or hardware failure, network congestion is assumed to happen. TCP has its own way to deal with network congestion. It is called TCP Congestion control. 
 
+TCP has built-in recovery mechanisms to detect the loss and retransmit the missing packet.It starts when slow-start phrase, in which the transmit rate (congestion window) grows exponentially, doubling each round trip time. When a packet is lost, congestion avoidance begins. The transmit rate is cut into half, then increase linearly, usually by 1 each RTT.
+
+|Mechanism	|When It Happens	|Action Taken	|Speed of Recovery|
+|-------------|-----------------|-------------|-----------------|
+|Retransmission Timeout (RTO)	|No ACK received before timeout expires	|Retransmit packet, double RTO, slow down sending|	Slow (Waits for timeout)
+|Fast Retransmit (3 Duplicate ACKs)	|Receiver detects missing packet but keeps receiving later packets	|Immediately retransmit missing packet	|Fast (No timeout wait)|
+|Fast Recovery (Congestion Control)	|After fast retransmit, avoids slowing down too much|	Adjusts congestion window to prevent overreaction|	Optimized Speed|
 ## How to detect the appropriate number of packets to send (speed of sending packet)?
 
 Like above.
@@ -53,7 +139,8 @@ Step 2 and 3 can be merged by one, so it will be 3-way handshake instead.
 
 ## What if the internet is dropped in the middle of the connection? Or in case one peer is crash?
 
-To be defined
+When a TCP connection is active and one side loses connectivity (due to network failure, system crash, or power loss), TCP must detect this failure and handle it gracefully. TCP does not immediately detect disconnections but relies on **timeouts and keep-alive mechanisms** to recognize a lost peer.
+
 
 ## How long you can keep a TCP connection alive?
 
@@ -65,7 +152,9 @@ The key difference between TCP and UDP is TCP has a mechanism to resend loss pac
 
 ## How Ping command works? What is TTL? How does TTL will be changed?
 
-Ping command sends a packet to the destination server, waits for the response then calculates round trip time.
+The ping command is used to check the reachability of a network device and measure **round-trip time (RTT)**. It works by sending **ICMP (Internet Control Message Protocol)** Echo Request packets to a target host and waiting for ICMP Echo Reply packets.
+
+TTL (Time To Live) is a field in the IP header that prevents infinite looping of packets in a network.
 
 Time-to-live is a mechanism that prevents a packet to be forward around the internet forever. Like the name, it is the number of times or hops, that packet can be forward before it is discarded by a router. Each time a router receives a packet, it reduces TTL of that packet by 1. If TTL reaches zero, the router will discard this packet then send an ICMP message back to the sender. The recommended default value of TTL is 64.
 
@@ -83,7 +172,32 @@ HTTP is an application protocol that transfers hypertext messages between client
 
 ## Why did people say that HTTP is stateless? The reason they make it stateless?
 
-People say HTTP is stateless because each request is executed independently. Stateless provides high scalability.
+**HTTP (HyperText Transfer Protocol)** is considered stateless because each request from a client to a server is independent, and the server does not retain information about previous requests.. Stateless provides high scalability.
+### Why Was HTTP Designed to Be Stateless?
+
+#### 1️⃣ Simplicity & Scalability
+- Statelessness makes HTTP simple and easy to implement.
+- Servers can handle millions of requests without tracking individual sessions.
+#### 2️⃣ Performance & Resource Efficiency
+- No need to store user session data → Lower memory and CPU usage.
+- Each request is independent → Load balancing is easier.
+#### 3️⃣ Fault Tolerance
+- No session dependency → If a server crashes, another server can handle the request.
+- Horizontal scaling is easier because no session synchronization is required.
+#### 4️⃣ Caching Benefits
+- Since each request is self-contained, caching HTTP responses becomes efficient.
+- CDNs (Content Delivery Networks) can serve cached content without needing a session.
+
+### How to Handle State in HTTP?
+
+Even though HTTP is stateless, developers use workarounds to store user state:
+
+| Method                        | How It Works |
+|--------------------------------|-------------|
+| **Cookies**                    | Small pieces of data stored in the browser, sent with every request. |
+| **Sessions (Server-side storage)** | Store user data in a database, referenced via a session ID. |
+| **JWT (JSON Web Token)**       | Encodes session info in a self-contained token, avoiding server storage. |
+| **Local Storage / Session Storage** | Stores data in the browser but is not automatically sent with requests. Useful for client-side state management. |
 
 ## Can we make a persistent HTTP connection? pros and cons of this way?
 
@@ -96,9 +210,26 @@ No it doesn't required cookie.
 
 ## Can someone use your cookie and log in your Facebook account? How to migrate this?
 
-If Facebook stores authentication straight info in cookies normally and does not do anything special, the answer is yes.
-We can mitigate it using HttpOnly flag.
+Yes! If an attacker steals your session cookie, they can impersonate you and access your Facebook (or any other web account) without needing your password. This type of attack is called Session Hijacking.
 
+1️⃣ How Does Session Hijacking Work?
+When you log into Facebook, a session cookie **(e.g., sessionid=abcd1234)** is stored in your browser.
+This cookie is automatically sent with each request, allowing Facebook to recognize you.
+If an attacker steals this cookie, they can use it on their own browser to access your account.
+
+# How to Prevent Cookie Hijacking?
+
+| Defense Mechanism | How It works  | Effectiveness  |
+|--------------------|------------------------------------|---------------|
+| **Use HTTPS (Secure Encryption)**         | Encrypts cookie data in transit to prevent sniffing.         | ✅ Strong    |
+| **Set HttpOnly Flag**                      | Prevents JavaScript from accessing cookies (blocks XSS attacks). | ✅ Strong    |
+| **Multi-Factor Authentication (MFA)**     | Even if an attacker gets your cookie, they still need another authentication factor. | ✅ Very Strong |
+
+ What Can You Do If Your Cookie Is Stolen?
+- A. Log Out All Sessions
+- B. Change Your Password
+If your session is hijacked, changing your password invalidates the stolen cookie.
+- C. Enable Two-Factor Authentication (2FA)
 ## What is HTTP session? How does authentication work in HTTP? What is JWT?
 
 Cause HTTP is stateless, HTTP session and cookie are two ways to connect some requests together.
@@ -204,11 +335,19 @@ Not only socket, everything is treated as files in Linux operating system. It pr
 
 ## What is src port when you create a connection to a "server"?
 
-To be defined.
+- When a client establishes a TCP connection to a server, it needs both a source port (SRC Port) and a destination port (DST Port) to properly communicate.
+
+- Destination Port (DST Port): The well-known port of the server (e.g., HTTP → 80, HTTPS → 443, SSH → 22).
+- Source Port (SRC Port): A randomly assigned port by the client’s operating system.
+
+### Why Use a Random Source Port?
+- Prevents conflicts between multiple connections.
+- Improves security (harder for attackers to predict).
+- Supports multiple connections from the same client to the same server.
 
 ## How one server can handle multiple connections to the same port?
 
-As below.
+When a packet travels from a client to a server, its source (SRC) and destination (DST) IP and port may be modified due to Network Address Translation (NAT), routing, and proxying. Here’s how these values change along the way:
 
 ## What is the maximum number of connections a server can handle? (if it has unlimited resource) (in case of the same client and in case of multiple clients)
 
@@ -273,7 +412,19 @@ Load-balancer distributes load to servers. It can do it randomly, uses an algori
 
 ## When we send a packet to a load balancer how does it forward to the desired server? (Does it keep any data on its memory?)
 
-As above (No).
+A load balancer (LB) distributes incoming network traffic across multiple backend servers to optimize performance, ensure availability, and prevent overloading.
+
+When you send a packet (or request) to a load balancer, it decides which server to forward that request to, based on its load-balancing algorithm and session handling mechanisms. Load balancers can operate in different network layers:
+
+- Layer 4 (Transport Layer): TCP/UDP load balancers
+- Layer 7 (Application Layer): HTTP/HTTPS load balancers
+
+|Question	|Short Answer|
+|--------------------|----------------------------|
+|How LB forwards packets?|	Chooses server via algorithm (round-robin, least connections, session affinity).|
+|Does it keep data in memory?	|Layer 4 LB: Minimal connection tracking. Layer 7 LB: Yes, keeps session state (cookies, affinity tables).|
+|Typical Data Stored?	|Connection/session table, affinity tables, cookie mappings.|
+|Persistence after failure?	|Usually not (stateless), unless configured for state persistence (Redis, cluster replication).|
 
 ## When the server wants to send data back to the client, does the connection need to go through the load balancer?
 

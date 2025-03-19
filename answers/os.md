@@ -250,3 +250,33 @@ Cache stampede happens when a lot of data need to be queried at the same time bu
 ## Quicksort vs Merge sort. Which is faster? Why? How they use these 2 sorting algorithms real life?
 
 To be defined.
+## Synchronous vs Asynchronous
+The terms synchronous (sync) and asynchronous (async) are fundamental in computing, networking, and programming. They describe how tasks or processes execute concerning time and waiting.
+
+### 1️⃣ Synchronous (Sync)
+Definition
+In synchronous execution, tasks are performed sequentially, meaning that each task must complete before the next one starts.
+The caller waits for a response before proceeding.
+
+**Example in Networking**
+#### Synchronous TCP communication:
+
+- The client sends a request and waits for the server's response before doing anything else.
+- Blocking Behavior: The client pauses execution while waiting for the server’s response.
+### 2️⃣ Asynchronous (Async)
+Definition
+In asynchronous execution, tasks can start without waiting for previous tasks to complete.
+The caller does not wait; instead, it can perform other tasks while waiting for the response.
+Example in Networking
+#### Asynchronous TCP communication (non-blocking sockets):
+- Non-Blocking Behavior: The program doesn’t pause execution and can handle other tasks while waiting for data.
+
+### 3️⃣ Key Differences
+
+| Feature      | Synchronous (Sync)       | Asynchronous (Async)       |
+|-------------|--------------------------|----------------------------|
+| **Execution** | Sequential (one after another) | Concurrent (tasks can overlap) |
+| **Blocking?** | Yes, waits for task completion | No, can continue doing other work |
+| **Performance** | Slower if waiting for I/O | Faster for I/O-bound tasks |
+| **Complexity** | Simpler to implement | More complex (requires event loops, callbacks) |
+| **Use Case** | CPU-bound tasks (math calculations) | I/O-bound tasks (networking, file reading) |
