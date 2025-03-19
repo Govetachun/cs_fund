@@ -437,3 +437,15 @@ Reserve proxy acts as an intermediary without any load distributing operation.
 ## Can load balancer be a bottleneck? (Because it is the end point of too many requests) (bottleneck about RAM or CPU or Network?)
 
 Yes. And it also can be a single point of failure.
+
+
+## **Layer 4 vs Layer 7 Load Balancing**
+
+| Feature  | Layer 4 Load Balancing | Layer 7 Load Balancing |
+|----------|------------------------|------------------------|
+| **Layer** | Transport Layer (4) | Application Layer (7) |
+| **Traffic Routing** | IP & Port-based | HTTP headers, URL, Content |
+| **Speed** | Fast, low overhead | Slower, content processing needed |
+| **Flexibility** | Limited | High (content-aware routing) |
+| **Common Use** | Simple load balancing, video streaming | Web apps, API Gateway, microservices |
+| **Examples** | TCP Load Balancer, AWS NLB | HTTP Load Balancer, AWS ALB |

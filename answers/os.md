@@ -388,3 +388,11 @@ Example in Networking
 
 ### **Conclusion**
 64-bit architecture is superior for modern computing, enabling more memory, better security, and improved performance.
+
+
+## Design a Memory Allocator
+A memory allocator is responsible for managing dynamic memory allocation and deallocation in an application. A basic implementation consists of:
+
+- Free List Management: Keeps track of free and allocated memory blocks.
+- Best-Fit / First-Fit Strategy: Determines how memory blocks are assigned.
+- Memory Splitting & Coalescing: Splits large blocks and merges adjacent free blocks to reduce fragmentation.
