@@ -449,3 +449,11 @@ Yes. And it also can be a single point of failure.
 | **Flexibility** | Limited | High (content-aware routing) |
 | **Common Use** | Simple load balancing, video streaming | Web apps, API Gateway, microservices |
 | **Examples** | TCP Load Balancer, AWS NLB | HTTP Load Balancer, AWS ALB |
+
+## QUIC
+
+- QUIC (Quick UDP Internet Connections) is a modern transport protocol developed by Google and later standardized by the IETF (RFC 9000). It was designed to improve upon TCP by reducing connection establishment times and eliminating head-of-line blocking at the transport layer. QUIC runs atop UDP rather than TCP, allowing for more flexible packet handling and better resilience against packet loss. With QUIC, new connections can be established with less latency, often requiring fewer round trips than traditional TCP+TLS handshakes.
+
+- A key advantage of QUIC is its built-in encryption equivalent to TLS 1.3. This ensures that all QUIC traffic is secure by default, removing the need for a separate TLS handshake phase that TCP-based protocols typically rely on. Additionally, QUIC divides data streams in a way that packet loss on one stream does not affect others—a significant departure from TCP, which can hold up all streams if a single packet is dropped. As a result, QUIC-based HTTP/3 offers a more efficient web experience with potentially lower latency, especially in scenarios with variable network conditions.
+
+- Despite its benefits, QUIC adoption requires updates on multiple fronts: server-side implementation (e.g., nginx, Envoy, or a specialized QUIC library), client/browser support, and network compatibility. Many firewalls and middleboxes were originally not designed for extensive UDP-based traffic, although this is improving as QUIC gains mainstream acceptance. Today, major web browsers, CDNs, and large-scale websites are increasingly adopting QUIC and HTTP/3, positioning them as the future of web transport protocols for high-performance and secure connections.

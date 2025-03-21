@@ -505,3 +505,361 @@ Continuous Integration (CI) and Continuous Deployment (CD) are key practices for
 3. **CD Tools**: Spinnaker, Argo CD, AWS CodePipeline.
 4. **Containerization**: Docker, Kubernetes (for orchestration).
 5. **Infrastructure**: Terraform, Ansible.
+
+## 1. Definition of HTTP
+
+**HTTP (Hypertext Transfer Protocol)** is a request–response protocol designed for distributed, collaborative, hypermedia information systems. It is the foundation of data communication on the World Wide Web. HTTP enables clients (like web browsers) to communicate with servers to request and deliver resources (HTML pages, images, etc.).
+
+---
+
+## 2. HTTP Versions: Definitions & Key Characteristics
+
+### HTTP/0.9
+- **Introduction:** The very first version (circa 1991).
+- **Features:**
+  - **Simplicity:** Supports only a single method (GET).
+  - **No Headers:** No support for HTTP headers; responses contain only raw data.
+  - **Stateless & Minimal:** Designed for simple hypertext retrieval.
+- **Usage:** Obsolete; primarily of historical interest.
+
+---
+
+### HTTP/1.0
+- **Introduction:** Published as RFC 1945 in 1996.
+- **Features:**
+  - **Request Methods:** Supports methods like GET, POST, and HEAD.
+  - **Headers:** Introduction of HTTP headers to provide metadata (Content-Type, Content-Length, etc.).
+  - **Stateless:** Each request-response pair is independent; typically opens a new TCP connection per request.
+  - **Limitations:** Lack of persistent connections leads to overhead from establishing new TCP connections frequently.
+- **Usage:** Early web communications; laid the groundwork for later improvements.
+
+---
+
+### HTTP/1.1
+- **Introduction:** Published as RFC 2068 (1997) and refined in RFC 2616 (1999), with subsequent updates.
+- **Features:**
+  - **Persistent Connections:** Keeps the connection open for multiple requests/responses, reducing latency.
+  - **Pipelining:** Allows multiple HTTP requests to be sent on a single TCP connection without waiting for the corresponding responses (though practical use is limited due to head-of-line blocking).
+  - **Chunked Transfer Encoding:** Supports sending responses in dynamically produced chunks.
+  - **Additional Headers:** Enhanced control with caching (Cache-Control), content negotiation, and more.
+  - **Virtual Hosting:** Uses the Host header to serve multiple domains on a single IP.
+- **Usage:** Remains widely used on the web; mature and supported by all modern browsers and servers.
+
+---
+
+### HTTP/2
+- **Introduction:** Published as RFC 7540 in 2015.
+- **Features:**
+  - **Binary Protocol:** Instead of textual commands, HTTP/2 uses a binary framing layer which reduces parsing errors and improves efficiency.
+  - **Multiplexing:** Multiple concurrent streams on a single TCP connection, eliminating head-of-line blocking inherent in HTTP/1.1 pipelining.
+  - **Header Compression:** Uses HPACK to compress HTTP headers, reducing overhead.
+  - **Server Push:** The server can send resources to the client proactively, potentially speeding up page loads.
+- **Usage:** Increasingly adopted by web services to reduce latency and improve performance.
+
+---
+
+### HTTP/3
+- **Introduction:** Currently evolving (with significant adoption ongoing) based on the QUIC protocol.
+- **Features:**
+  - **Transport over QUIC:** Uses QUIC (which runs over UDP) rather than TCP, offering faster connection establishment and improved performance in lossy networks.
+  - **Elimination of TCP Head-of-Line Blocking:** Since QUIC manages streams independently, one lost packet does not block others.
+  - **Enhanced Security:** QUIC integrates TLS 1.3 directly into its protocol.
+  - **Better Mobility:** Supports connection migration, which is useful for mobile devices.
+- **Usage:** Adoption is growing as browsers and servers roll out support; expected to become standard in high-performance web applications.
+
+---
+
+## 3. Comparison Table: HTTP Versions
+
+| **Feature**             | **HTTP/0.9**                | **HTTP/1.0**                             | **HTTP/1.1**                                  | **HTTP/2**                                   | **HTTP/3**                                   |
+|-------------------------|-----------------------------|------------------------------------------|-----------------------------------------------|----------------------------------------------|----------------------------------------------|
+| **Release Date**        | ~1991                       | 1996                                     | 1997 (and updated later)                      | 2015                                         | ~2020+ (emerging standard)                   |
+| **Protocol Type**       | Text-based, Minimal         | Text-based                               | Text-based                                    | Binary                                       | Binary (built on QUIC over UDP)              |
+| **Request Methods**     | Only GET                    | GET, POST, HEAD                          | GET, POST, HEAD, etc.                         | GET, POST, etc.                              | GET, POST, etc.                              |
+| **Connection Handling** | New connection per request  | New connection per request               | Persistent connections                        | Single connection with multiplexed streams   | Multiplexed streams over a QUIC connection   |
+| **Header Support**      | None                        | Basic HTTP headers                       | Extensive headers (caching, negotiation, etc.)| Header compression (HPACK)                   | Header compression (improved over HTTP/2)    |
+| **Multiplexing**        | No                          | No                                       | Limited (via pipelining)                      | Yes                                          | Yes                                          |
+| **Security**            | Not inherent                | Not inherent (TLS separate setup)         | Not inherent (often used with TLS as HTTPS)   | Typically used with TLS                      | Integrated TLS (TLS 1.3 in QUIC)             |
+| **Server Push**         | No                          | No                                       | No                                            | Yes                                          | Yes                                          |
+| **Latency Improvements**| N/A                         | Higher latency due to new connections    | Reduced due to persistent connections         | Further reduced via multiplexing             | Further improvements via QUIC’s optimizations|
+
+---
+
+## 4. Technical Considerations & Trade-offs
+
+- **HTTP/1.x (0.9, 1.0, 1.1)**
+  - **Pros:**
+    - Simplicity
+    - Mature and broadly supported
+  - **Cons:**
+    - Overhead from text-based protocol
+    - Multiple TCP connections needed for concurrent requests
+
+- **HTTP/2**
+  - **Pros:**
+    - Reduced latency via multiplexing
+    - Header compression
+    - Server push capabilities
+  - **Cons:**
+    - Still reliant on TCP (possible head-of-line blocking at transport layer)
+
+- **HTTP/3**
+  - **Pros:**
+    - Eliminates TCP head-of-line blocking by using QUIC
+    - Faster connection establishment
+    - Better performance over unreliable networks
+  - **Cons:**
+    - Requires adoption of QUIC
+    - Still maturing in terms of ecosystem and tooling
+
+# 1. Making UDP "Guarantee" Reliability
+
+## 1.1 Can We Make UDP Guarantee Delivery?
+- **Default UDP Behavior**: UDP (User Datagram Protocol) is a connectionless, best-effort protocol. It does **not** guarantee:
+  - Delivery
+  - Ordered reception
+  - Duplicate suppression
+
+- **Application-Layer Reliability**: You *can* implement reliability mechanisms on top of UDP. For instance:
+  - Sequence numbers in each UDP payload to detect order and loss
+  - Acknowledgments and retransmission strategies (similar to TCP’s sliding window concept)
+  - Forward error correction codes (e.g., Reed-Solomon) to recover from packet loss
+
+**Conclusion**: UDP itself cannot provide guaranteed delivery, but you can *build* such guarantees in the application layer. This approach is common in low-latency streaming protocols (e.g., video games, VoIP) where partial or custom reliability is desired.
+
+---
+
+# 2. QUIC Versions
+
+**QUIC** is a modern transport protocol initially designed by Google and later adopted by the IETF.
+
+- **Google QUIC**: Early, proprietary version used by Google in Chrome.
+- **IETF QUIC**: Standardized QUIC.
+  - **Draft versions**: Ranged from draft-01 through draft-34 (and so on).
+  - **QUIC v1 (RFC 9000)**: The first official IETF standard.
+  - Subsequent versions continue to evolve, adding features such as multipath, improved congestion control, and various extensions.
+
+**Key Features** of QUIC:
+- Runs over UDP but includes congestion control and reliability built in
+- TLS 1.3 integrated for security (no separate handshake step)
+- Faster connection establishment compared to TCP+TLS
+
+---
+
+# 3. Firewall: Software or Hardware?
+
+- **Hardware Firewall**:
+  - A physical device placed at the network’s perimeter.
+  - Performs packet inspection, network address translation (NAT), and other security checks at or near the router.
+  - Usually used to protect entire networks or data centers.
+
+- **Software Firewall**:
+  - A piece of software running on the host OS (e.g., Windows Firewall, iptables on Linux).
+  - Monitors and filters incoming/outgoing packets on that single system.
+  - Often part of endpoint security solutions.
+
+In practice, large organizations may have **multiple layers**: hardware firewalls at the perimeter and software firewalls on each server/client.
+
+---
+
+# 4. Blob Database
+
+**Blob** stands for **Binary Large Object**. A “Blob database” typically refers to:
+- Storing large unstructured data (e.g., images, videos, documents) in a dedicated type or field.
+- Common in **NoSQL** or specialized object storage systems (e.g., AWS S3, Azure Blob Storage).
+- Some relational databases (e.g., PostgreSQL, MySQL) provide BLOB data types to store binary data directly.
+
+**Blob Databases** vs. **File Storage**:
+- **Blob DB** might integrate data and metadata in a single system with transactional guarantees (ACID in RDBMS).
+- **File System** might rely on separate metadata (filenames, paths) with different concurrency guarantees.
+
+---
+
+# 5. Encryption
+
+## 5.1 What Is Encryption?
+Encryption is the process of converting **plaintext** into **ciphertext** using a cryptographic algorithm and a key, ensuring that only authorized parties can convert ciphertext back into plaintext.
+
+1. **Plaintext**: Original readable data.
+2. **Key**: A piece of information (secret) that controls the encryption/decryption process.
+3. **Ciphertext**: The encrypted (unreadable) data.
+
+---
+
+## 5.2 Symmetric vs. Asymmetric Encryption
+
+### Symmetric Encryption
+- **Single Key**: The same secret key is used for both encryption and decryption.
+- **Example Algorithms**: AES (Advanced Encryption Standard), DES (old), 3DES, Blowfish.
+- **Advantages**:
+  - Faster, efficient for bulk data encryption.
+- **Disadvantages**:
+  - Key distribution: securely sharing the key with each party can be challenging.
+
+### Asymmetric Encryption
+- **Key Pair**: Consists of a public key (for encryption) and a private key (for decryption).
+- **Example Algorithms**: RSA, ECC (Elliptic Curve Cryptography).
+- **Advantages**:
+  - Simplified key distribution: You can share your public key openly.
+  - Enables digital signatures.
+- **Disadvantages**:
+  - Slower than symmetric encryption, more computationally intensive.
+
+---
+
+## 5.3 Algorithm Examples (Conceptual, Not Shown)
+
+---
+
+## 5.4 What Is a Root Certificate?
+
+- A **Root Certificate** is the anchor of trust in a Public Key Infrastructure (PKI).
+- Issued by a **Certificate Authority (CA)** (e.g., DigiCert, Let’s Encrypt) and stored in **trusted root stores** (e.g., your operating system or browser).
+- Certificates in the trust chain are validated by chaining back to this root.
+
+---
+
+# 6. Database Normalization
+
+Normalization is a **systematic approach** of decomposing tables to minimize data redundancy and improve data integrity. Common forms:
+
+## 6.1 First Normal Form (1NF)
+- **Definition**:
+  1. Each cell contains *atomic values* (no multiple values in a single cell).
+  2. Each record is unique (no duplicate rows).
+
+- **Example**:
+  - **Violation**: A `phone_numbers` column that stores multiple phone numbers in a single field, like `123-4567, 234-5678`.
+  - **Fix**: Separate those phone numbers into multiple rows or have a child table referencing them.
+
+## 6.2 Second Normal Form (2NF)
+- **Definition**: 1NF + all **non-key** columns depend on the **entire primary key**, not just part of it.
+- **Applies** only when you have a **composite primary key** (i.e., a primary key with multiple columns).
+
+## 6.3 Third Normal Form (3NF)
+- **Definition**: 2NF + **non-key** columns must depend on **only the primary key** (no transitive dependency).
+- **Transitive Dependency**: A non-key attribute depends on another non-key attribute.
+
+---
+
+# 7. Deadlock
+
+A **deadlock** occurs when two or more processes are blocked forever, each holding a resource that the other wants, and no one can proceed.
+
+**Example**:
+1. **Process A** acquires **Resource 1**, waits for **Resource 2**.
+2. **Process B** acquires **Resource 2**, waits for **Resource 1**.
+3. Neither can proceed, resulting in deadlock.
+
+**Deadlock Avoidance Techniques**:
+- **Lock Ordering**: Enforce an order in which locks are acquired.
+- **Deadlock Detection**: Periodically check for cycles in resource allocation graphs and abort/rollback one process if a deadlock is found.
+- **Timeouts**: If a lock is not acquired within a set time, release locks and retry.
+
+---
+
+# 8. Overriding vs Overloading
+
+## 8.1 Overriding
+- **Context**: Inheritance/Polymorphism in OOP.
+- **Definition**: A subclass provides a specific implementation for a method already defined in its superclass.
+- **Key Points**:
+  - Signature is the *same* as the superclass method (same name, parameters).
+  - Different behavior at runtime (dynamic dispatch).
+
+## 8.2 Overloading
+- **Context**: Same class (or possibly related classes) but different parameter signatures.
+- **Definition**: *Multiple methods* with the same name but different parameter lists (type/number/order).
+- **Key Points**:
+  - Compile-time polymorphism (the method is chosen at compile time).
+
+---
+
+# 9. Types of Cache
+
+Caching is the practice of storing data in a **faster storage** medium to speed up future requests.
+
+### 9.1 CPU Cache
+- **L1, L2, L3**: On-chip caches for CPU instructions and data. Very low latency.
+
+### 9.2 Application/Software Cache
+- **In-Memory Store**: Tools like Redis, Memcached.
+- Used to store database results, session data, or any frequently accessed data.
+
+### 9.3 Web Cache
+- **Browser Caches**: Storing web pages, images to reduce network traffic.
+- **CDN**: Geographically distributed caches.
+
+### 9.4 Database Cache
+- **Buffer Pools**: E.g., MySQL InnoDB buffer pool.
+- Caching queries or data pages in memory to avoid disk I/O.
+
+
+
+# 1. Core OS Abstraction Terms – Definitions
+
+| Term             | Definition                                                                                                                       |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| **Multitasking** | The ability of an OS to **switch between tasks rapidly**, giving the illusion that multiple tasks are executing at the same time. It uses **time-sharing** of CPU. |
+| **Multithreading** | A technique where a **single process** contains multiple threads that can execute concurrently (e.g., background task + UI in the same app). Threads share memory. |
+| **Multiprocessing** | Use of **multiple CPUs/cores** in a single system to execute multiple **processes** simultaneously. Each process is isolated.                             |
+| **Parallelism** | Actual **simultaneous execution** of multiple computations. Can be achieved with multithreading (on multi-core) or multiprocessing.                              |
+| **Concurrency** | A broader concept: multiple computations are in **progress at the same time**, possibly interleaved (not necessarily parallel). It focuses on **structure**, not execution timing. |
+| **Context Switching** | Saving and loading the state of processes/threads so the CPU can switch between them. Overhead is higher in process switching than thread switching. |
+| **Thread**       | The smallest unit of execution, sharing the same memory space of its parent process.                                                                 |
+| **Process**      | An independent unit of execution with its own memory space. Can contain multiple threads.                                                              |
+| **Scheduler**    | Part of the OS that decides which process/thread runs next on the CPU. Can use algorithms like Round Robin, FCFS, etc.                                   |
+
+---
+
+# 2. Comparison Table
+
+| Feature              | Multitasking         | Multithreading           | Multiprocessing           | Parallelism            | Concurrency           |
+|----------------------|----------------------|--------------------------|---------------------------|------------------------|-----------------------|
+| **Execution Unit**   | Process             | Thread                   | Process                   | Any (process/thread)   | Any                   |
+| **Sharing**          | Processes isolated  | Threads share memory     | Processes isolated        | Can share or not       | Can share or not      |
+| **True Simultaneity**| No (illusion)       | Maybe (depends on cores) | Yes (multi-core CPU)      | Yes                    | Not required          |
+| **Focus**            | Time-sharing        | Task concurrency in app  | System-level concurrency  | Speed-up via parallel  | Structure, responsiveness |
+| **Overhead**         | Medium              | Low (shared memory)      | High (context switching)  | Depends               | Depends              |
+
+---
+
+# 3. Additional OS Abstraction Terms
+
+### 3.1 Virtual Memory
+- Abstraction where each process thinks it has its own large memory.
+- OS maps virtual addresses to physical RAM using paging.
+
+### 3.2 Paging & Segmentation
+- **Paging**: Divides memory into fixed-size pages; enables non-contiguous memory allocation.
+- **Segmentation**: Divides memory into logical segments (code, stack, heap).
+
+### 3.3 Swapping
+- Temporarily moving processes from RAM to disk (swap space) to free up memory.
+
+### 3.4 Kernel/User Mode
+- **Kernel Mode**: OS runs in full-privilege mode (can access all hardware).
+- **User Mode**: User processes run with restricted privileges.
+
+### 3.5 Daemon/Service
+- Background process, often started at boot, running continuously (e.g., cron, systemd).
+
+### 3.6 Fork and Exec (in UNIX)
+- **Fork**: Creates a copy of the current process.
+- **Exec**: Replaces the current process image with a new program.
+
+### 3.7 Signals
+- OS-level interrupts sent to processes (e.g., `SIGKILL`, `SIGTERM`) to control or communicate.
+
+### 3.8 Locks/Mutex/Semaphores
+- **Synchronization primitives** used in multithreaded programming to prevent race conditions.
+
+### 3.9 IPC (Inter-Process Communication)
+- Mechanisms for processes to communicate: shared memory, pipes, message queues, sockets.
+
+### 3.10 Scheduling Algorithms
+- Dictate which process/thread runs next:
+  - FCFS (First-Come, First-Serve)
+  - Round Robin
+  - SJF (Shortest Job First)
+  - Priority Scheduling
