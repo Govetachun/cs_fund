@@ -323,3 +323,7 @@ Common application-level protocols include:
 - **Uses standard web infrastructure and widely supported**.
 
 Understanding WebSockets is **essential** for modern web development! 🔥
+
+### CDNs
+CDN là hệ thống các máy chủ phân phối nội dung đến người dùng dựa trên vị trí địa lý gần nhất.
+Nó giúp tăng tốc độ tải, giảm tải cho server gốc, cải thiện bảo mật và khả năng mở rộng hệ thống.
