@@ -254,7 +254,15 @@ Deallocation announces for the OS that this segment of memory is free now and ca
 
 ## What happens when your computer is full of memory?
 
-To be defined. (It will throw error?)
+When a computer runs out of memory (RAM), the operating system tries to free up space by moving data to swap on disk, but this makes the system much slower. If both RAM and swap are full, new programs may fail to start, applications can crash, or the OS might kill processes or become unresponsive.
+
+Extra (if asked for solutions):
+- Close unused apps.
+- Add more RAM.
+- Increase swap space (if possible).
+- Optimize software usage.
+
+
 
 ## Why you do not need to "deallocate" local variable?
 
