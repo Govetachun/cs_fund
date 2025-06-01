@@ -138,3 +138,48 @@ If you see Seq Scan or type = ALL, it means the index is not being used and may 
 | 9 | Phần trăm trong nhóm | Dùng `SUM(val) OVER (PARTITION BY group)` và chia từng dòng cho tổng |
 | 10 | Đơn hàng của tháng gần nhất | Lấy `MAX(DATE_TRUNC('month', created_at))` rồi lọc theo tháng đó |
 
+
+### nếu muốn đảm bảo đầu ra 1 consumer, sắp xếp tuần tự từ 3 partition thì làm sao trong kafka, trả lời sao cho intervier hiểu
+
+Kafka chỉ đảm bảo thứ tự trong từng partition.
+
+Nếu bạn cần thứ tự tuần tự khi đọc từ nhiều partition (ví dụ 3), thì:
+
+- Bạn chỉ dùng 1 consumer duy nhất, và
+
+- Bạn cần merge dữ liệu theo timestamp hoặc logic riêng tại phía client.
+
+- Nếu thứ tự quan trọng, nên thiết kế để các message liên quan đi cùng 1 partition.
+
+## So sánh ưu và nhược điểm khi giao tiếp giữa rest API và kafka,
+### REST API
+
+Đồng bộ, request–response, dễ debug.
+
+Tốt cho các action cần kết quả ngay (login, payment).
+
+Nhưng khi traffic cao hoặc service downstream chậm, dễ bị block/call timeout.
+
+### Kafka
+
+Bất đồng bộ, publish–subscribe, throughput rất cao.
+
+Tách rời producer và consumer, consumer có thể offline rồi xử lý sau.
+
+Tuy nhiên cấu hình phức tạp hơn, khó debug, và không phù hợp cho tác vụ cần phản hồi ngay.
+
+Khi phỏng vấn, bạn có thể kết luận rằng:
+
+Dùng REST khi cần synchronous, kết quả ngay, transaction.
+
+Dùng Kafka khi cần asynchronous, event streaming, xử lý luồng dữ liệu lớn và decoupled microservices.
+
+## partition, offset, topic khác nhau sao. có thể config 2 consumer group đọc data từ partition không
+
+- Topic: “kênh” logic, chứa nhiều partition.
+
+- Partition: từng chuỗi message tuần tự, dùng để phân phối và scale.
+
+- Offset: chỉ số (index) của message trong partition, consumer lưu lại để đọc lần kế tiếp.
+
+- Hai consumer group có thể đọc từ cùng một partition, vì mỗi group tự theo dõi offset riêng biệt.
