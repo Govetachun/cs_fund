@@ -291,7 +291,29 @@ We need to write a query that takes advantage of index if any.
 
 ## Complexity of JOIN, INNER JOIN, OUTER JOIN?
 
-To be defined.
+## ✅ Short Answer: JOIN & Complexity (for Interview)
+
+**Q: Giải thích các loại JOIN và độ phức tạp?**
+
+- `INNER JOIN`: lấy các dòng có match ở cả hai bảng.
+- `LEFT JOIN`: lấy tất cả từ bảng bên trái, nếu không khớp thì điền `NULL`.
+- `RIGHT JOIN`: như LEFT nhưng là bảng bên phải.
+- `FULL OUTER JOIN`: lấy tất cả từ cả hai bảng, chỗ không match điền `NULL`.
+
+**Complexity (tùy strategy DBMS chọn):**
+- `Hash Join`, `Merge Join`: **O(n + m)** (nhanh, cần index hoặc sort).
+- `Nested Loop Join`: **O(n × m)** (nếu không có index).
+- `FULL OUTER JOIN`: tốn memory hơn vì merge + NULL padding.
+
+**Tối ưu JOIN bằng cách:**
+- Index đúng cột join.
+- Tránh join nhiều bảng không cần thiết.
+- Dùng `EXPLAIN` để kiểm tra execution plan.
+
+`INNER JOIN` lấy dòng trùng giữa hai bảng, nếu có index thì nhanh O(n + m), nếu không thì O(n × m).
+`LEFT/RIGHT JOIN` giống `INNER JOIN` nhưng giữ tất cả dòng từ một phía, thêm `NULL` nếu không có match.
+`FULL OUTER JOIN` lấy hết từ cả hai bảng, tốn RAM và CPU hơn.
+Tối ưu bằng cách đặt index lên cột `JOIN`, tránh `JOIN` nhiều bảng không cần thiết.
 
 ## What is Database Replicating? When do we need it?
 
