@@ -327,3 +327,22 @@ Understanding WebSockets is **essential** for modern web development! 🔥
 ### CDNs
 CDN là hệ thống các máy chủ phân phối nội dung đến người dùng dựa trên vị trí địa lý gần nhất.
 Nó giúp tăng tốc độ tải, giảm tải cho server gốc, cải thiện bảo mật và khả năng mở rộng hệ thống.
+
+### DNS store cache ở đâu
+DNS cache là bộ nhớ tạm lưu các bản ghi phân giải tên miền (domain name) sang địa chỉ IP. DNS cache có thể nằm ở nhiều nơi trên đường truy vấn DNS, gồm:
+
+1. Trên máy người dùng (client):
+
+- Hệ điều hành hoặc trình duyệt lưu lại các bản ghi DNS từng truy vấn để tăng tốc truy cập lần sau.
+
+2. Trên router/gateway cục bộ:
+
+- Nhiều router hoặc modem lưu cache DNS để giảm số lượng truy vấn ra ngoài Internet.
+
+3. Trên DNS server của nhà mạng hoặc DNS server trung gian (resolver):
+
+- Máy chủ DNS trung gian (của ISP, Google DNS, Cloudflare…) giữ cache để trả lời nhanh cho các truy vấn trùng lặp từ nhiều người dùng.
+
+4. Trên các server DNS phân cấp trên Internet:
+
+- Các DNS server cao hơn cũng có thể cache tạm thời nhưng chủ yếu cache ở cấp resolver.
