@@ -310,10 +310,11 @@ We need to write a query that takes advantage of index if any.
 - Tránh join nhiều bảng không cần thiết.
 - Dùng `EXPLAIN` để kiểm tra execution plan.
 
-`INNER JOIN` lấy dòng trùng giữa hai bảng, nếu có index thì nhanh O(n + m), nếu không thì O(n × m).
-`LEFT/RIGHT JOIN` giống `INNER JOIN` nhưng giữ tất cả dòng từ một phía, thêm `NULL` nếu không có match.
-`FULL OUTER JOIN` lấy hết từ cả hai bảng, tốn RAM và CPU hơn.
-Tối ưu bằng cách đặt index lên cột `JOIN`, tránh `JOIN` nhiều bảng không cần thiết.
+##
+- `INNER JOIN` lấy dòng trùng giữa hai bảng, nếu có index thì nhanh O(n + m), nếu không thì O(n × m).
+- `LEFT/RIGHT JOIN` giống `INNER JOIN` nhưng giữ tất cả dòng từ một phía, thêm `NULL` nếu không có match.
+- `FULL OUTER JOIN` lấy hết từ cả hai bảng, tốn RAM và CPU hơn.
+- Tối ưu bằng cách đặt index lên cột `JOIN`, tránh `JOIN` nhiều bảng không cần thiết.
 
 ## What is Database Replicating? When do we need it?
 
