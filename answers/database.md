@@ -485,3 +485,76 @@ A social media app stores user profiles in **PostgreSQL** and images in **AWS S3
 - **Use databases** for **structured, transactional data**.
 - **Use object storage** for **large, unstructured files** (videos, backups, etc.).
 - Combining both ensures **optimized performance and cost-efficiency**.
+
+## Đánh index nhiều bị gì?
+Đánh nhiều index sẽ làm chậm thao tác ghi, tốn dung lượng, query planner dễ chọn sai index, làm tăng chi phí bảo trì và có thể gây lock contention. Chỉ nên đánh index cho các cột thực sự cần thiết để tối ưu truy vấn thường dùng.
+
+## Dựa vào dữ kiện gì để chọn đánh index 1 cột, có đánh foreign key không?
+Chọn cột để đánh index dựa trên tần suất xuất hiện trong WHERE, JOIN, ORDER BY, GROUP BY và độ selectivity cao. Đánh index trên foreign key giúp tối ưu truy vấn join và đảm bảo ràng buộc toàn vẹn dữ liệu, thường phải tự tạo index trên foreign key ở bảng con.
+
+## Có nên đánh index trên FOREIGN KEY không?
+A. Foreign Key là gì?
+Là ràng buộc giữa 2 bảng, đảm bảo tính toàn vẹn dữ liệu (một trường của bảng A phải tham chiếu giá trị tồn tại ở bảng B).
+
+B. Index trên FOREIGN KEY có cần không?
+Nên đánh index trên cột là foreign key.
+
+Lý do:
+
+- Giúp truy vấn nhanh hơn khi thực hiện JOIN giữa 2 bảng (parent & child).
+
+- Giúp thực hiện các thao tác xóa/cập nhật (ON DELETE, ON UPDATE) nhanh hơn và tránh full table scan.
+
+- Một số DBMS (MySQL InnoDB) tự động tạo index trên primary key của bảng cha, nhưng không tự động trên foreign key của bảng con (bạn phải tự tạo)
+
+## Các cách tối ưu query ngoài index
+- Refactoring query (tránh SELECT *, hạn chế hàm trên cột, dùng EXISTS,…)
+- Tối ưu JOIN / Subquery (chọn đúng loại JOIN, replace nested subquery, CTE)
+- Partitioning (theo range, hash)
+- Materialized View / Denormalization (tạo bảng tóm tắt, tóm lược kết quả)
+- Caching (Redis, Memcached; query cache)
+- Thống kê và EXPLAIN (ANALYZE, EXPLAIN ANALYZE để hiểu execution plan)
+- LIMIT / Pagination (keyset pagination)
+- Thiết kế schema (Balance normalization vs. denormalization, composite index, thứ tự cột)
+- Hardware & cấu hình DB (RAM, SSD, buffer pool, các tham số)
+- Monitoring & Profiling (slow query log, Performance Schema, pg_stat_statements)
+
+## Biến subquery thành bảng tạm thế nào (để tối ưu query)
+#### Khi nào nên dùng?
+
+- Subquery phức tạp, lồng nhiều tầng, hoặc dùng nhiều lần trong 1 truy vấn JOIN/phép tính.
+- Subquery đó phải scan nhiều dữ liệu, join nhiều bảng hoặc có phép tính nặng (aggregation).
+- Tránh việc DBMS thực thi lặp lại subquery nhiều lần (với correlated subquery hoặc re-use subquery).
+
+#### Lợi ích:
+
+- Giảm tải cho planner.
+- Có thể tạo index trên bảng tạm.
+- Tăng hiệu năng, dễ debug.
+
+Để tối ưu subquery phức tạp hoặc tái sử dụng nhiều lần, bạn chuyển subquery thành bảng tạm qua CREATE TEMPORARY TABLE ... AS (subquery), sau đó dùng bảng tạm này trong các truy vấn tiếp theo. Có thể tạo index trên bảng tạm nếu cần, giúp tăng hiệu năng và dễ bảo trì.
+
+### TRUNCATE vs DELETE
+- `DELETE` dùng để xóa từng hàng (có/không điều kiện), log đầy đủ, giữ `AUTO_INCREMENT`, kích hoạt trigger, có thể rollback.
+- `TRUNCATE` dùng để xóa nhanh toàn bộ bảng, minimal logging, reset `AUTO_INCREMENT`, không kích hoạt trigger, thường không thể thực thi nếu còn FK, và đôi khi auto-commit (tùy engine).
+
+### Cho 1 bảng có id và parent_id,  hỏi cách query đệ quy ra được tổ tiên id
+Để truy vấn tất cả tổ tiên (ancestor) của 1 node trong bảng có id/parent_id, sử dụng CTE đệ quy với WITH RECURSIVE (hỗ trợ ở PostgreSQL, SQL Server, MySQL 8+). Bắt đầu từ node cần tìm, truy ngược parent qua join lặp lại, trả về danh sách id tổ tiên cho node đó.
+
+```SQL
+WITH RECURSIVE ancestors AS (
+    -- Bước 1: Lấy node bắt đầu
+    SELECT id, parent_id
+    FROM categories
+    WHERE id = 6  -- Thay bằng node bạn cần tìm
+
+    UNION ALL
+
+    -- Bước 2: Mỗi vòng truy ngược lên cha
+    SELECT c.id, c.parent_id
+    FROM categories c
+    INNER JOIN ancestors a ON c.id = a.parent_id
+)
+SELECT * FROM ancestors
+WHERE id != 6;  -- Loại bỏ node gốc (nếu chỉ lấy tổ tiên)
+```
