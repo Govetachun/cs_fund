@@ -174,7 +174,7 @@ Dùng REST khi cần synchronous, kết quả ngay, transaction.
 
 Dùng Kafka khi cần asynchronous, event streaming, xử lý luồng dữ liệu lớn và decoupled microservices.
 
-## partition, offset, topic khác nhau sao. có thể config 2 consumer group đọc data từ partition không
+## Partition, offset, topic khác nhau sao. có thể config 2 consumer group đọc data từ partition không
 
 - Topic: “kênh” logic, chứa nhiều partition.
 
@@ -183,3 +183,68 @@ Dùng Kafka khi cần asynchronous, event streaming, xử lý luồng dữ liệ
 - Offset: chỉ số (index) của message trong partition, consumer lưu lại để đọc lần kế tiếp.
 
 - Hai consumer group có thể đọc từ cùng một partition, vì mỗi group tự theo dõi offset riêng biệt.
+
+Here's a simple and clear explanation of **Primary Key vs Secondary Key**:
+
+---
+# Primary Key vs Secondary Key
+### 🔑 **Primary Key**
+
+* A **primary key** is a column (or set of columns) in a database table that **uniquely identifies each row**.
+* It **must be unique** and **cannot be null**.
+* Every table **should have one and only one** primary key.
+
+**Example:**
+
+```sql
+CREATE TABLE users (
+    user_id INT PRIMARY KEY,
+    username VARCHAR(100),
+    email VARCHAR(100)
+);
+```
+
+* Here, `user_id` is the primary key — each user has a unique ID.
+
+---
+
+### 🔐 **Secondary Key** (also called Alternate Key or Candidate Key)
+
+* A **secondary key** is any **non-primary** column that is also **unique** and can be used to identify a row.
+* It is often used for **searching or indexing**.
+* Unlike the primary key, it is **not mandatory** and may **contain nulls** (depending on the use case).
+* It can be declared as **UNIQUE** to enforce uniqueness.
+
+**Example:**
+
+```sql
+CREATE TABLE users (
+    user_id INT PRIMARY KEY,
+    username VARCHAR(100) UNIQUE,
+    email VARCHAR(100) UNIQUE
+);
+```
+
+* Here, both `username` and `email` are **secondary keys** because they are unique and can be used to find a user — but they are **not the primary key**.
+
+---
+
+### 🧠 Summary Table
+
+| Feature        | Primary Key   | Secondary Key       |
+| -------------- | ------------- | ------------------- |
+| Uniqueness     | ✅ Required    | ✅ Usually required  |
+| Null Allowed   | ❌ Not allowed | ✅ Sometimes allowed |
+| One per table? | ✅ Only one    | ✅ Can have many     |
+| Purpose        | Row identity  | Searching, indexing |
+| Constraints    | `PRIMARY KEY` | `UNIQUE`, `INDEX`   |
+
+---
+
+### 🎯 Analogy (for fun):
+
+Think of a **Primary Key** as your **national ID number** — it’s **one-of-a-kind** and officially used to identify you.
+
+A **Secondary Key** is like your **email** or **phone number** — still unique and can identify you, but it's **not the official ID**.
+
+
