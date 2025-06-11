@@ -259,21 +259,12 @@ For text fields, index on that column only is used when filter condition filters
 
 ## The complexity of SQL query? How to measure it? How SQL optimize a query?
 
-To be defined.
+“I measure SQL complexity using EXPLAIN to inspect the query plan and cost. Complexity is mainly driven by how many rows are processed, how joins are done, and whether indexes are used. SQL optimizers try to minimize cost using techniques like index usage, join reordering, and filter pushdown. I always check query plans and tune indexes or rewrite queries for better performance.”
 
 ## Compare `WHERE id = 'a' AND id = 'b' AND id = 'c'` vs `WHERE id in (a, b, c)`?
 
 In MySQL, the values in the IN list will be sorted and MySQL will use binary search to check if the current value is in the list. So the check operator will cost O(log N) complexity, with N being the number of elements that need to be compared.
 
-Some links to read more:
-
-- https://www.postgresql.org/message-id/12553.1135634231@sss.pgh.pa.us
-
-- https://www.cybertec-postgresql.com/en/postgresql-indexing-index-scan-vs-bitmap-scan-vs-sequential-scan-basics/
-
-- https://subscription.packtpub.com/book/big_data_and_business_intelligence/9781785284335/11/ch11lvl1sec104/running-bitmap-heap-and-index-scan
-
-- https://www.oreilly.com/library/view/high-performance-mysql/9780596101718/ch04.html"
 
 ## Complexity of this query `SELECT * FROM abc ORDER BY name LIMIT 10 OFFSET 1000000` // SELECT 10 record from offset 10^6 after sort by name (which is a char)? How to optimize it?
 
@@ -291,7 +282,6 @@ We need to write a query that takes advantage of index if any.
 
 ## Complexity of JOIN, INNER JOIN, OUTER JOIN?
 
-## ✅ Short Answer: JOIN & Complexity (for Interview)
 
 **Q: Giải thích các loại JOIN và độ phức tạp?**
 
@@ -366,9 +356,6 @@ Relational DB ensures Atomicity by Transaction. A transaction is a collection of
 
 ## How rollback works internally?
 
-# **How Rollback Works Internally?**
-
-## **What is a Rollback?**
 A **rollback** is the process of undoing changes made during a transaction if an error or failure occurs, ensuring the database remains in a consistent state.
 
 ## **Rollback Mechanism in Databases**
@@ -544,10 +531,110 @@ Read committed is a weak isolation level that is used to guarantee no dirty read
 
 - When many concurrent requests happen, transactions use isolation levels and locking mechanisms to ensure data integrity. The database transaction manager handles these requests using ACID properties (Atomicity, Consistency, Isolation, Durability). Isolation is managed through techniques like pessimistic locking (locking rows until a transaction completes) or optimistic locking (checking for conflicts before committing). 
 - Different isolation levels (READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE) control how transactions see uncommitted changes from others. If conflicts occur (e.g., two transactions updating the same row), the database may rollback one of them or use MVCC (Multi-Version Concurrency Control) to allow non-blocking reads. This ensures that concurrent transactions execute safely without corrupting data.
+Here's a structured deep dive into **how transactions work under concurrent requests**, with emphasis on ACID properties, isolation levels, and concurrency control mechanisms:
+
+### 🔁 How Transactions Work Under Concurrent Requests
+
+### 1. **Transaction Lifecycle and ACID Guarantees**
+
+Every database transaction follows the **ACID** principles:
+
+* **Atomicity**: All or nothing – either all changes are committed, or none are.
+* **Consistency**: The DB remains valid after transaction.
+* **Isolation**: Concurrent transactions don’t interfere.
+* **Durability**: Once committed, changes persist even if the system crashes.
+
+---
+
+### 2. **Concurrency and Isolation**
+
+When **multiple transactions run at the same time**, the database must isolate them to avoid:
+
+* **Dirty reads** (reading uncommitted data),
+* **Non-repeatable reads** (reading different values in the same transaction),
+* **Phantom reads** (rows appearing/disappearing between queries).
+
+This is managed by **isolation levels**:
+
+| Isolation Level      | Dirty Read | Non-Repeatable Read | Phantom Read |
+| -------------------- | ---------- | ------------------- | ------------ |
+| **READ UNCOMMITTED** | ✅          | ✅                   | ✅            |
+| **READ COMMITTED**   | ❌          | ✅                   | ✅            |
+| **REPEATABLE READ**  | ❌          | ❌                   | ✅            |
+| **SERIALIZABLE**     | ❌          | ❌                   | ❌            |
+
+* Higher isolation → fewer anomalies but worse performance (more locking/blocking).
+
+---
+
+### 3. **Concurrency Control Mechanisms**
+
+#### a. **Pessimistic Locking**
+
+* Lock acquired **before** data is read or written.
+* Prevents other transactions from accessing the data until lock is released.
+* Good for high-conflict environments.
+
+```sql
+-- Example: SELECT ... FOR UPDATE (locks rows)
+BEGIN;
+SELECT * FROM accounts WHERE id = 1 FOR UPDATE;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+COMMIT;
+```
+
+#### b. **Optimistic Locking**
+
+* No locks during reads. Data is modified if **version/token** hasn’t changed.
+* Conflict detection at commit.
+* Suitable for low-conflict, high-read workloads.
+
+```sql
+-- Uses versioning
+UPDATE accounts
+SET balance = balance - 100, version = version + 1
+WHERE id = 1 AND version = 5;
+```
+
+#### c. **MVCC (Multi-Version Concurrency Control)**
+
+* Readers don’t block writers, and writers don’t block readers.
+* Each transaction sees a **snapshot** of the DB.
+* Widely used in **PostgreSQL**, **MySQL InnoDB**, **Oracle**.
+
+```text
+Transaction A           Transaction B
+--------------          --------------
+Read balance = 100      
+                        UPDATE balance = 90
+                        COMMIT
+Read balance = 100 (sees old snapshot)
+```
+
+---
+
+### 4. **Conflict Resolution & Rollback**
+
+* If two transactions update the same row:
+
+  * **Pessimistic**: Second one waits (or deadlock detected & rolled back).
+  * **Optimistic**: Second fails on commit (version mismatch).
+  * **MVCC**: Reader doesn’t see uncommitted write; writer may conflict at commit time.
+
+---
+
+### 5. **Best Practices**
+
+* Use **lower isolation** (e.g., `READ COMMITTED`) for better performance unless strong consistency is needed.
+* Use **retry logic** for transient failures (e.g., optimistic lock version mismatch).
+* Monitor and tune for **deadlocks**, **lock contention**, and **long-running transactions**.
+
+
+
 
 ## How to avoid race condition in DB? Read/Write lock?
 
-To be defined.
+To avoid race conditions in a DB, I use transactions and either pessimistic locking (SELECT ... FOR UPDATE) or optimistic locking (with a version column) depending on conflict likelihood. I may also adjust isolation levels (like using SERIALIZABLE for critical operations) or leverage MVCC in systems like PostgreSQL to allow safe concurrent access without blocking readers.
 
 ## Distributed transaction? How to make a transaction when a query needs to access multiple DB?
 
