@@ -255,6 +255,33 @@ REST stands for representational state transfer. It's a set of constraints that 
 
 An API that follows REST constraints is called RESTful.
 
+Here's a simple, compact comparison of **PUT vs POST**, tailored for interview clarity:
+
+---
+
+## 🔁 **PUT vs POST (HTTP Methods)**
+
+| Feature           | **PUT**                                         | **POST**                                    |
+| ----------------- | ----------------------------------------------- | ------------------------------------------- |
+| **Purpose**       | Update **or create** a **specific resource**    | Create a **new resource**                   |
+| **Idempotent**    | ✅ Yes (multiple calls = same result)            | ❌ No (multiple calls = duplicate resources) |
+| **URI Target**    | Client defines the **exact URI** (`/users/123`) | Server assigns URI (`/users`)               |
+| **Usage Example** | Update user with ID 123                         | Create a new user                           |
+| **Body**          | Contains full updated data                      | Contains new data to process                |
+
+---
+
+### 💡 In Practice:
+
+* Use **PUT** when you **know the resource's ID** and want to **replace or update it**.
+* Use **POST** when you want the **server to create a new resource** and assign its ID.
+
+---
+
+### 🧠 Interview Tip:
+
+> “PUT is like replacing or updating a file at a known path. POST is like adding a new file to a folder and letting the system decide the filename.”
+
 ## AJAX technique?
 
 AJAX uses XMLHttpRequest to communicate with server. The first "A" stands for asynchronous, which means using AJAX, we can communicate with server without reloading the page.
@@ -457,3 +484,148 @@ Yes. And it also can be a single point of failure.
 - A key advantage of QUIC is its built-in encryption equivalent to TLS 1.3. This ensures that all QUIC traffic is secure by default, removing the need for a separate TLS handshake phase that TCP-based protocols typically rely on. Additionally, QUIC divides data streams in a way that packet loss on one stream does not affect others—a significant departure from TCP, which can hold up all streams if a single packet is dropped. As a result, QUIC-based HTTP/3 offers a more efficient web experience with potentially lower latency, especially in scenarios with variable network conditions.
 
 - Despite its benefits, QUIC adoption requires updates on multiple fronts: server-side implementation (e.g., nginx, Envoy, or a specialized QUIC library), client/browser support, and network compatibility. Many firewalls and middleboxes were originally not designed for extensive UDP-based traffic, although this is improving as QUIC gains mainstream acceptance. Today, major web browsers, CDNs, and large-scale websites are increasingly adopting QUIC and HTTP/3, positioning them as the future of web transport protocols for high-performance and secure connections.
+
+Here’s a compact guide to **sharing data between two web pages**, either in the **same browser** (e.g. tabs) or **across different browsers/devices**.
+
+---
+## How to share data between 2 web pages in the same browser / diff browser
+### 🔄 1. **Same Browser**
+
+### ✅ **Options for Communication**
+
+| Method                 | Scope                  | Use Case                                  |
+| ---------------------- | ---------------------- | ----------------------------------------- |
+| `localStorage`         | Same browser           | Share across tabs, survives reloads       |
+| `sessionStorage`       | Same tab               | Data is isolated to a single tab          |
+| `window.postMessage`   | Cross-origin, tabs     | Real-time message passing between windows |
+| `BroadcastChannel API` | Same origin, tabs      | Real-time communication (modern browsers) |
+| `SharedWorker`         | Same origin, tabs      | Share logic + state (e.g. chat engine)    |
+| `Cookies`              | All tabs, all sessions | Legacy but widely supported               |
+
+### 🔁 Example: `localStorage`
+
+```js
+// Tab A
+localStorage.setItem('user', JSON.stringify({ name: 'Alice' }));
+
+// Tab B
+const user = JSON.parse(localStorage.getItem('user'));
+```
+
+### 🔁 Example: `BroadcastChannel`
+
+```js
+// Tab A and B
+const channel = new BroadcastChannel('my_channel');
+
+channel.postMessage({ action: 'update', value: 42 });
+
+channel.onmessage = (e) => {
+  console.log('Received', e.data);
+};
+```
+
+---
+
+### 🌐 2. **Different Browsers or Devices**
+
+Since `localStorage` or `sessionStorage` is sandboxed per browser, you need **backend support**:
+
+### ✅ **Options**
+
+| Method                        | Use Case                         |
+| ----------------------------- | -------------------------------- |
+| REST API + Database           | Store and sync data via backend  |
+| WebSocket Server              | Real-time bidirectional updates  |
+| Cloud Storage (e.g. Firebase) | Cross-device syncing             |
+| Cookies with server           | Maintain shared session info     |
+| OAuth tokens                  | Share login/session between apps |
+
+### 📦 Example Flow:
+
+1. Page A posts data to a server:
+
+   ```http
+   POST /save-data { "user_id": 123, "value": "xyz" }
+   ```
+2. Page B (on any device) fetches:
+
+   ```http
+   GET /get-data?user_id=123
+   ```
+
+---
+
+## 🧠 Interview Tip
+
+> “Use `localStorage` or `BroadcastChannel` for tabs in the same browser. For cross-browser or device syncing, a backend or real-time cloud service is essential.”
+
+## What is Websocket? Use cases? In the outdated browsers, how can we deal with the long-lived connection without using Websocket ?
+## 🌐 What is WebSocket?
+
+**WebSocket** is a **full-duplex**, **persistent** communication protocol over a single TCP connection, standardized in **RFC 6455**.
+
+### 🔁 Key Features:
+
+* Allows **server to push data to client** (not just client-initiated like HTTP).
+* Establishes a **single long-lived connection** (no need to reopen on every request).
+* Uses `ws://` or `wss://` (for secure).
+
+---
+
+## ✅ Use Cases
+
+| Use Case                    | Why WebSocket?                                 |
+| --------------------------- | ---------------------------------------------- |
+| 🔄 Real-time chat apps      | Instant message delivery                       |
+| 📈 Live stock/pricing feeds | Push frequent updates without polling          |
+| 🎮 Online multiplayer games | Fast, bi-directional communication             |
+| 🛠️ Collaborative editing   | Real-time document syncing (e.g., Google Docs) |
+| 📊 Dashboards & analytics   | Push live metrics (e.g., server monitoring)    |
+| 👮 Notifications system     | Server-initiated alerts                        |
+
+---
+
+## 💡 WebSocket vs HTTP (simplified)
+
+| Feature     | HTTP                           | WebSocket                    |
+| ----------- | ------------------------------ | ---------------------------- |
+| Protocol    | Request-response (half-duplex) | Full-duplex                  |
+| Connection  | New for every request          | Persistent single connection |
+| Server push | ❌ Not natively supported       | ✅ Yes                        |
+| Latency     | Higher (due to reconnection)   | Lower                        |
+
+---
+
+## 🧓 Outdated Browser Fallbacks (No WebSocket Support)
+
+Before WebSocket was widely supported, developers used **"Comet"** techniques for long-lived client-server communication over HTTP.
+
+### 📉 Fallback Mechanisms:
+
+| Technique                    | Description                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| **Long Polling**             | Client makes request → Server holds it until data is ready → Client immediately re-requests |
+| **Server-Sent Events** (SSE) | Unidirectional push from server to client over HTTP (`EventSource` API)                     |
+| **Forever IFrame**           | Hidden iframe receives streamed chunks from the server                                      |
+| **AJAX Polling**             | Client requests data at fixed intervals (not efficient)                                     |
+
+### 📌 Long Polling Example:
+
+```js
+function poll() {
+  fetch('/updates')
+    .then(response => response.json())
+    .then(data => {
+      console.log('New data', data);
+      poll(); // Re-initiate after each response
+    });
+}
+poll();
+```
+
+---
+
+## 🧠 Interview Summary
+
+> “WebSocket enables full-duplex, real-time communication. For unsupported browsers, long-polling and SSE are practical fallbacks to maintain live data delivery.”

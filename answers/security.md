@@ -95,7 +95,7 @@ Here’s a **clear, interview-friendly explanation of JWT (JSON Web Token)** —
 
 ## 🔐 What is JWT?
 
-**JWT (JSON Web Token)** is a compact, URL-safe way to represent claims between **two parties** — typically used for **authentication and authorization** in modern APIs.
+**JWT (JSON Web Token)** is a compact, URL-safe way to represent claims between **two parties** — typically used for **authentication and authorization** in modern APIs. jwt
 
 > Think of JWT as a **signed passport**: the client holds it, and the server trusts it because it’s tamper-proof.
 
@@ -208,7 +208,8 @@ Ensures token is not tampered with — signed using:
 
 ---
 
-
+## Oauth2
+"oauth2 enables secure delegated access using tokens. In the Authorization Code flow, the client never sees user credentials — instead, it uses a code exchange for access tokens. This minimizes attack surface and supports fine-grained permission control.”
 
 
 ## 🎥 What is WebRTC?

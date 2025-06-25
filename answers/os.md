@@ -26,6 +26,21 @@ When process context switching happens, the state of the current process will be
 
 When thread context switching happens, the state of the current thread will be stored in Thread Control Block (TCB), so the thread can be resumed later. It includes the value of the CPU registers, the thread state, a program counter, a stack pointer, and a pointer to the PCB of the process to which the thread belongs. There is one major difference in thread context switching compared to processes: the address space remains the same (the is no page replacement).
 
+## Can threads in the same process run on different cores?
+
+Yes, threads within the same process can run on different cores, depending on OS scheduling. This enables true parallelism, if language/runtime supports it. — unless the runtime (like CPython) introduces constraints like the GIL
+
+## 🔒 Python’s GIL (Global Interpreter Lock)
+
+* In **CPython**, the GIL allows only **one thread to execute Python bytecode at a time**.
+* So, even if threads are scheduled on different cores, they **don’t execute Python code in parallel**.
+* Solution: Use:
+
+  * `multiprocessing` (different processes = real parallelism)
+  * External C extensions (NumPy, etc.)
+  * Other Python implementations (e.g., Jython, IronPython) or languages like **Go, Rust, C++**
+
+
 ## What is multi-process and multi-thread? When should we use which?
 
 Multi-processing is when more than 2 processes are running simultaneously on a computer. This is probable in a multi-processor computer, where each processor handles a process.
@@ -398,14 +413,108 @@ Example in Networking
 64-bit architecture is superior for modern computing, enabling more memory, better security, and improved performance.
 
 
-## Design a Memory Allocator
-A memory allocator is responsible for managing dynamic memory allocation and deallocation in an application. A basic implementation consists of:
+## design a memory allocator
+A memory allocator is responsible for managing dynamic memory allocation and deallocation in an application. 
 
-- Free List Management: Keeps track of free and allocated memory blocks.
-- Best-Fit / First-Fit Strategy: Determines how memory blocks are assigned.
-- Memory Splitting & Coalescing: Splits large blocks and merges adjacent free blocks to reduce fragmentation.
+## 🧠 Goal
+
+Design a memory allocator that:
+
+* Allocates memory of requested size (`malloc`)
+* Frees memory (`free`)
+* Minimizes fragmentation
+* Is efficient in time and space
+
+---
+
+## 🔧 Components of the Design
+
+### 1. **Heap Space Management**
+
+* The allocator manages a large, contiguous block of memory (simulated or actual).
+* This "heap" is divided and tracked by the allocator — not the OS.
+
+---
+
+### 2. **Metadata Structure**
+
+Each block in memory has metadata:
+
+```
+[Header | Payload | Footer (optional)]
+```
+
+**Header** stores:
+
+* Block size
+* Status (free/used)
+* Possibly links to other blocks (for free list)
+
+---
+
+## 🧱 Memory Block Strategies
+
+### ➕ Allocation
+
+* Align memory to 8/16-byte boundaries.
+* Use **best-fit**, **first-fit**, or **next-fit** strategy to find suitable free block.
+* Split larger blocks if necessary:
+
+  ```
+  [Free block of size 128] → [Allocated 64][Free 64]
+  ```
+
+### ➖ Deallocation
+
+* When `free(ptr)` is called:
+
+  * Mark block as free
+  * Optionally coalesce with adjacent free blocks to reduce fragmentation
+
+---
+
+## 🔄 Free Space Management
+
+### ✅ Options:
+
+| Strategy        | Description                           |
+| --------------- | ------------------------------------- |
+| Free list       | Linked list of free blocks            |
+| Segregated list | Lists for different block sizes       |
+| Bitmap          | Bitmask to indicate allocation state  |
+| Buddy system    | Power-of-2 splits for fast coalescing |
+
+---
+
+## 🧮 Fragmentation Control
+
+### 🔹 Internal fragmentation:
+
+* Due to alignment or over-allocation
+* Minimized via smart size rounding and block splitting
+
+### 🔸 External fragmentation:
+
+* Scattered free blocks too small to use
+* Controlled via coalescing or compaction (if movable)
+
+---
+
+## 🕸️ Thread Safety (Optional)
+
+* Use **mutexes** or **lock-free structures** for concurrent allocators
+* Or use **per-thread arena allocators** to reduce contention
+
+---
 
 
+## 🧠 Interview Summary
+
+> “I’d manage a large heap with metadata per block. I'd maintain a free list (or segregated bins) for fast lookup, split large blocks on allocation, coalesce on free, and align sizes to avoid fragmentation. For concurrency, I’d use thread-local arenas or locks.”
+
+## Suppose that the memory allocator works, how do you avoid race condition if there are multiple threads in caller application?
+
+“To avoid race conditions, I’d start with a global lock for simplicity. For scalability, I’d partition memory using thread-local arenas. In high-performance systems, I’d consider lock-free structures for managing free lists or fixed-size slab pools.”
 # 1. Virtual Machine
 
 ## 1.1 Definition
@@ -492,3 +601,226 @@ A memory allocator is responsible for managing dynamic memory allocation and dea
 
 ### 5.7 Snapshots
 - A point-in-time image of a VM’s disk and memory state, allowing quick rollback or cloning.
+
+
+
+## What is Garbage Collector (GC) and how does it work? Where does Garbage Collector detect variables that have no reference? Under normal conditions, how to set the timing to run Garbage Collector?
+
+## 🧹 What is Garbage Collector?
+
+A **Garbage Collector (GC)** is a **memory management system** that **automatically frees memory** occupied by **objects no longer in use**, preventing **memory leaks** and improving performance.
+
+> 🧠 Think of it as an automatic janitor that deletes unreachable objects to reclaim heap space.
+
+---
+
+## ⚙️ How Garbage Collector Works (Conceptually)
+
+### 🔍 GC detects objects that:
+
+* Are **no longer reachable** from the program’s "root set" (e.g. stack, static variables, global references).
+* Have **zero references** (reference count = 0) or are **not accessible** via any path.
+
+---
+
+### ✅ Common Strategies:
+
+| Method                       | Mechanism                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| **Reference Counting**       | Deletes objects with no incoming references. Simple but fails on cycles.     |
+| **Tracing (Mark-and-Sweep)** | Marks reachable objects and sweeps the rest as garbage. Handles cycles.      |
+| **Generational GC**          | Classifies objects by age (young, old) and collects young ones more often.   |
+| **Stop-the-world**           | Pauses execution to run GC cycle (used by many runtimes like Java, CPython). |
+| **Incremental/Concurrent**   | Runs GC in small parts or parallel to app (used in modern JVM, Go).          |
+
+---
+
+## 📍 Where Does GC Look for Unreachable Variables?
+
+> GC **starts from root references** and **traces all reachable objects**.
+
+### Root references include:
+
+* Stack variables (local to functions)
+* Global/static variables
+* CPU registers
+* Objects referenced by active threads
+
+> Any object **not transitively reachable from a root** is **garbage**.
+
+---
+
+## ⏱️ When Does GC Run?
+
+### 🔁 Default Behavior (Language-Specific)
+
+| Language             | GC Trigger                                                           | Notes                                 |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------- |
+| **Java**             | Heap thresholds, allocation pressure, explicit `System.gc()`         | JVM uses generational + concurrent GC |
+| **Python (CPython)** | Object count & thresholds in **reference counting + cycle detector** | Triggers when thresholds are crossed  |
+| **Go**               | Heap growth, idle CPU time, automatic tuning                         | Uses concurrent GC                    |
+
+---
+
+### 🛠️ Can You Control GC Timing?
+
+Yes, **partially**, depending on the language:
+
+#### ✅ Java
+
+```java
+System.gc();  // Suggests JVM to run GC (not guaranteed)
+```
+
+#### ✅ Python
+
+```python
+import gc
+gc.collect()  # Manually trigger GC
+gc.set_threshold(700, 10, 10)  # Tune automatic triggers
+```
+
+#### ✅ Go
+
+```go
+runtime.GC()  // Manual GC trigger
+```
+
+> ⚠️ **For performance-critical systems**, GC tuning is often essential (heap size, pause time, frequency).
+
+---
+
+## 🧠 Interview Tip
+
+> “Garbage collectors automatically reclaim unreachable memory. They typically trace from root references to detect unused objects. Though we can't always control exactly *when* GC runs, most languages let us **tune** or **suggest** GC behavior.”
+
+## With peak hour, too many connections, too high memory, how to run GC?
+
+## 🚨 Problem: Peak Hour Pressure
+
+* High number of active threads/connections = more live objects.
+* More allocations = faster heap fill-up.
+* Frequent or long GC pauses can cause:
+
+  * Increased **latency**
+  * **Throughput drops**
+  * **OutOfMemoryError** (in Java) or memory bloat (in Python)
+
+“During peak hours, proactively manage GC by tuning thresholds, increasing heap size, using concurrent collectors (like G1GC or Go’s GC), and triggering manual GC before peak. Monitoring and preemptive cleanup are key to minimizing GC latency spikes under heavy load.”
+
+## ❓ **"With peak hours, too many connections, too many long-lived connections — how to run Garbage Collection (GC) effectively?"**
+
+
+### 🧠 Problem Context
+
+Under peak load:
+
+* 📈 Thousands of **long-lived connections** (e.g. WebSocket, HTTP keep-alive).
+* 🧠 Lots of **in-memory state** retained longer (e.g. session objects, buffers).
+* 🐢 GC may **not reclaim memory aggressively**, or **pause too long**.
+* ⚠️ Risk: **Memory leaks**, **GC thrashing**, **OutOfMemoryError**, or **latency spikes**.
+
+## 🧠 Interview Soundbite
+
+> “Under heavy load with long-lived connections, I run a preemptive GC before peak, tune GC for low latency and long-lived objects, and monitor heap usage to trigger reactive GC. I also reduce GC pressure using pooling and clean reference management.”
+
+
+## what is deadlock? what is minimum number of threads required for deadlock to occur? can deadlock occur with only 1 thread
+
+Here's a **precise and interview-friendly breakdown** of **deadlock**, its conditions, and thread requirements:
+
+---
+
+## 🔒 What is Deadlock?
+
+A **deadlock** is a situation where **two or more threads are waiting indefinitely for resources held by each other**, causing all of them to be **blocked forever**.
+
+> 💡 Think of it as two people holding one half of a pen each, and both waiting for the other to let go.
+
+---
+
+## 🧱 4 Coffman Conditions for Deadlock
+
+Deadlock can only occur if **all** of these are true:
+
+| Condition            | Meaning                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| **Mutual Exclusion** | A resource can be held by only one thread at a time            |
+| **Hold and Wait**    | A thread holds a resource while waiting for another            |
+| **No Preemption**    | Resources cannot be forcibly taken — only released voluntarily |
+| **Circular Wait**    | Circular chain of threads waiting for each other's resources   |
+
+---
+
+## 🔢 Minimum Number of Threads Required for Deadlock?
+
+### ✅ **Minimum = 2 threads**
+
+* **Thread A** holds **Resource X**, waits for **Resource Y**
+* **Thread B** holds **Resource Y**, waits for **Resource X**
+
+This forms a **circular wait**, the simplest deadlock.
+
+---
+
+## ❓ Can Deadlock Occur with Only **1 Thread**?
+
+### 🔴 **No, not traditional deadlock** (based on mutual blocking between entities).
+
+However:
+
+### 🟡 But! A **self-deadlock** (a.k.a. reentrant deadlock) *can* occur if:
+
+* A thread **waits on itself** due to incorrect synchronization logic.
+
+#### Example (Python pseudocode):
+
+```python
+lock.acquire()
+lock.acquire()  # Deadlock: waiting for itself (non-reentrant lock)
+```
+
+This is **not a multi-thread deadlock**, but it's a **programming bug** leading to the thread being blocked forever.
+
+---
+
+## 🧠 Interview Summary
+
+> “Deadlock happens when threads hold resources and wait on each other in a cycle. You need **at least 2 threads** to have a classic deadlock, but a single thread can cause a **self-deadlock** if it tries to re-acquire a non-reentrant lock it already holds.”
+
+## docker engine vs VM about manage resource
+
+| Feature                        | **Docker Engine (Containers)**                            | **Virtual Machine (VM)**                                         |
+| ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Abstraction Level**          | OS-level (shares host kernel)                             | Hardware-level (emulates entire OS + kernel)                     |
+| **Resource Isolation**         | Partial (via cgroups, namespaces)                         | Strong (each VM fully isolated via hypervisor)                   |
+| **Startup Time**               | Very fast (\~milliseconds)                                | Slow (\~seconds to minutes)                                      |
+| **Memory Overhead**            | Low (no guest OS)                                         | High (each VM runs its own OS)                                   |
+| **CPU Allocation**             | Shared, but limited via `cpu_shares`, `cpus`, `cpu_quota` | Dedicated virtual CPUs (vCPUs); strict core reservation possible |
+| **Memory Allocation**          | Shared, limited via `memory` or `mem_limit`               | Fixed or dynamic allocation (swap, ballooning, etc.)             |
+| **Disk I/O Control**           | With device-mapper / overlay2 + blkio controls            | More granular via hypervisor-level control                       |
+| **Resource Efficiency**        | High — containers share host kernel                       | Lower — full OS overhead per VM                                  |
+| **Security Boundary**          | Weaker (kernel shared)                                    | Stronger (separate kernels per VM)                               |
+| **Live Migration / Snapshots** | Limited or experimental                                   | Mature snapshotting and migration support                        |
+
+---
+
+## 🔧 Example: How Docker Manages Resources
+
+```bash
+# Limit CPU to 2 cores and memory to 512MB
+docker run --cpus="2.0" --memory="512m" my_app
+```
+
+Behind the scenes:
+
+* **CPU**: controlled by **cgroups** and **CPU shares/quota**
+* **Memory**: hard and soft limits via **memory cgroups**
+* **Isolation**: **Linux namespaces** isolate file system, PID, network, etc.
+
+---
+
+## 🧠 Interview Summary
+
+
+> “Docker containers manage resources using kernel features like cgroups and namespaces. They’re lightweight and fast but offer weaker isolation compared to VMs, which use hypervisors to fully virtualize hardware and OS, at the cost of more overhead.”

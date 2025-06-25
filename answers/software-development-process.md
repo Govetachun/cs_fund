@@ -370,3 +370,7 @@ Observers : update()
 * *“Head First Design Patterns”* (Freeman & Robson)
 * Martin Fowler’s Pattern Catalog: [https://martinfowler.com/εpatterns.html](https://martinfowler.com/εpatterns.html)
 
+## Why do you want to join Microsoft?
+I’m excited to join Microsoft—especially the Azure Container App Service team—because it aligns deeply with both my experience and aspirations. I’ve built and optimized cloud-native platforms that handle large-scale real-time data, deployed containerized services, and engineered internal tools to improve developer workflows. I’m drawn to the challenge of building resilient, high-throughput systems that serve global customers, and Microsoft’s scale and impact in this space is unmatched. Beyond the technical alignment, I value Microsoft’s culture of collaboration, growth mindset, and commitment to innovation—principles I already practice and want to continue growing under.
+
+The Azure Container App Service team’s mission to simplify high-density, multi-tenant, and serverless computing aligns perfectly with my passion for building scalable, developer-friendly infrastructure. I’m excited by the technical challenges Microsoft tackles at global scale, and I see this as a unique opportunity to learn from world-class engineers while contributing meaningfully to mission-critical systems used by millions
